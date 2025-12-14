@@ -177,18 +177,20 @@ resource "google_compute_firewall" "allow_internal" {
 }
 
 # ========================================
-# COMPUTE INSTANCE
+# COMPUTE INSTANCES (Multiple VMs)
 # ========================================
-resource "google_compute_instance" "vm_instance" {
-  name         = var.instance_name
-  machine_type = var.machine_type
-  zone         = var.zone
+resource "google_compute_instance" "vm_instances" {
+  for_each = var.vm_instances
+
+  name         = each.value.name
+  machine_type = each.value.machine_type
+  zone         = each.value.zone
 
   boot_disk {
     initialize_params {
-      image = var.boot_disk_image
-      size  = var.boot_disk_size
-      type  = var.boot_disk_type
+      image = each.value.boot_disk_image
+      size  = each.value.boot_disk_size
+      type  = each.value.boot_disk_type
     }
   }
 
@@ -197,11 +199,11 @@ resource "google_compute_instance" "vm_instance" {
     subnetwork = google_compute_subnetwork.subnet.name
 
     access_config {
-      nat_ip = var.assign_public_ip ? google_compute_address.vm_static_ip[0].address : null
+      nat_ip = each.value.assign_public_ip ? google_compute_address.vm_static_ip[each.key].address : null
     }
   }
 
-  tags = var.instance_tags
+  tags = each.value.instance_tags
 
   metadata = {
     enable-oslogin = "true"
@@ -216,11 +218,14 @@ resource "google_compute_instance" "vm_instance" {
 }
 
 # ========================================
-# STATIC IP ADDRESS (Optional)
+# STATIC IP ADDRESSES (Optional)
 # ========================================
 resource "google_compute_address" "vm_static_ip" {
-  count  = var.assign_public_ip ? 1 : 0
-  name   = "${var.instance_name}-static-ip"
+  for_each = {
+    for key, vm in var.vm_instances : key => vm if vm.assign_public_ip
+  }
+
+  name   = "${each.value.name}-static-ip"
   region = var.region
 
   address_type = "EXTERNAL"
@@ -254,17 +259,28 @@ output "nat_gateway_name" {
   description = "Name of the NAT gateway"
 }
 
-output "vm_public_ip" {
-  value       = var.assign_public_ip ? google_compute_address.vm_static_ip[0].address : null
-  description = "Static public IP of the VM"
+output "vm_details" {
+  value = {
+    for key, vm in google_compute_instance.vm_instances : vm.name => {
+      public_ip  = vm.network_interface[0].access_config[0].nat_ip
+      internal_ip = vm.network_interface[0].network_ip
+      zone       = vm.zone
+    }
+  }
+  description = "Details of all VM instances"
 }
 
-output "vm_internal_ip" {
-  value       = google_compute_instance.vm_instance.network_interface[0].network_ip
-  description = "Internal IP of the VM"
+output "vm_names" {
+  value       = [for vm in google_compute_instance.vm_instances : vm.name]
+  description = "Names of all VM instances"
 }
 
-output "vm_name" {
-  value       = google_compute_instance.vm_instance.name
-  description = "Name of the VM instance"
+output "vm_public_ips" {
+  value       = [for vm in google_compute_instance.vm_instances : vm.network_interface[0].access_config[0].nat_ip]
+  description = "Public IPs of all VM instances"
+}
+
+output "vm_internal_ips" {
+  value       = [for vm in google_compute_instance.vm_instances : vm.network_interface[0].network_ip]
+  description = "Internal IPs of all VM instances"
 }

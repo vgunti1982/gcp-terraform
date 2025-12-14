@@ -60,49 +60,90 @@ variable "ssh_source_ranges" {
   default     = ["0.0.0.0/0"]  # Change to your IP for security
 }
 
-# ========================================
-# COMPUTE INSTANCE
-# ========================================
 variable "instance_name" {
-  description = "Name of the VM instance"
+  description = "Name of the VM instance (deprecated - use vm_instances instead)"
   type        = string
   default     = "my-vm"
 }
 
 variable "machine_type" {
-  description = "Machine type for the VM"
+  description = "Machine type for the VM (deprecated - use vm_instances instead)"
   type        = string
   default     = "e2-micro"
 }
 
 variable "boot_disk_image" {
-  description = "Boot disk image"
+  description = "Boot disk image (deprecated - use vm_instances instead)"
   type        = string
   default     = "debian-cloud/debian-11"
 }
 
 variable "boot_disk_size" {
-  description = "Boot disk size in GB"
+  description = "Boot disk size in GB (deprecated - use vm_instances instead)"
   type        = number
   default     = 20
 }
 
 variable "boot_disk_type" {
-  description = "Boot disk type"
+  description = "Boot disk type (deprecated - use vm_instances instead)"
   type        = string
   default     = "pd-standard"
 }
 
 variable "assign_public_ip" {
-  description = "Whether to assign a static public IP"
+  description = "Whether to assign a static public IP (deprecated - use vm_instances instead)"
   type        = bool
   default     = true
 }
 
-variable "instance_tags" {
-  description = "Network tags for the VM"
-  type        = list(string)
-  default     = ["ssh", "http", "https", "custom-ports"]
+# ========================================
+# MULTIPLE VM INSTANCES
+# ========================================
+variable "vm_instances" {
+  description = "Configuration for multiple VM instances"
+  type = map(object({
+    name             = string
+    machine_type     = string
+    zone             = string
+    boot_disk_image  = string
+    boot_disk_size   = number
+    boot_disk_type   = string
+    assign_public_ip = bool
+    instance_tags    = list(string)
+  }))
+
+  default = {
+    "vm1" = {
+      name             = "app-server-1"
+      machine_type     = "e2-micro"
+      zone             = "us-central1-a"
+      boot_disk_image  = "debian-cloud/debian-11"
+      boot_disk_size   = 20
+      boot_disk_type   = "pd-standard"
+      assign_public_ip = true
+      instance_tags    = ["ssh", "http", "https", "custom-ports"]
+    }
+    "vm2" = {
+      name             = "app-server-2"
+      machine_type     = "e2-micro"
+      zone             = "us-central1-b"
+      boot_disk_image  = "debian-cloud/debian-11"
+      boot_disk_size   = 20
+      boot_disk_type   = "pd-standard"
+      assign_public_ip = true
+      instance_tags    = ["ssh", "http", "https", "custom-ports"]
+    }
+    "vm3" = {
+      name             = "app-server-3"
+      machine_type     = "e2-micro"
+      zone             = "us-central1-c"
+      boot_disk_image  = "debian-cloud/debian-11"
+      boot_disk_size   = 20
+      boot_disk_type   = "pd-standard"
+      assign_public_ip = true
+      instance_tags    = ["ssh", "http", "https", "custom-ports"]
+    }
+  }
 }
 
 # ========================================
